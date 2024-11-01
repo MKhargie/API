@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
+import json
+import os
 
 app = FastAPI()
 
@@ -11,17 +13,22 @@ class ActionRequest(BaseModel):
 @app.post("/api/action")
 async def handle_action(request: ActionRequest):
     try:
-        # Handle different action types
-        if request.action == "greet":
-            return {"message": f"Hello! Parameters received: {request.parameters}"}
-        elif request.action == "calculate":
-            # Example of handling a calculation action
-            if not request.parameters or "numbers" not in request.parameters:
-                raise HTTPException(status_code=400, detail="Missing numbers parameter")
-            numbers = request.parameters["numbers"]
-            return {"result": sum(numbers)}
+        # Save the request to a JSON file
+        request_data = request.dict()
+        file_path = "action_requests.json"
+        
+        if os.path.exists(file_path):
+            with open(file_path, "r") as file:
+                data = json.load(file)
         else:
-            raise HTTPException(status_code=400, detail=f"Unknown action: {request.action}")
+            data = []
+
+        data.append(request_data)
+
+        with open(file_path, "w") as file:
+            json.dump(data, file, indent=4)
+        
+        return {"message": "Action request saved successfully"}
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
